@@ -3,8 +3,10 @@ package me.dags.chat;
 import com.google.common.collect.ImmutableList;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.Order;
 import org.spongepowered.api.event.filter.cause.Root;
 import org.spongepowered.api.event.network.ClientConnectionEvent;
+import org.spongepowered.api.service.permission.Subject;
 
 /**
  * @author dags <dags@dags.me>
@@ -19,14 +21,18 @@ public final class JoinListener {
         this.options = ImmutableList.copyOf(options);
     }
 
-    @Listener
+    @Listener(order = Order.PRE)
     public void onJoin(ClientConnectionEvent.Join event, @Root CommandSource source) {
+        setOptions(source);
+    }
+
+    void setOptions(Subject subject) {
         ChatOptions applicable = defaultOptions;
         for (ChatOptions options : this.options) {
-            if (options.applicableTo(source)) {
+            if (options.applicableTo(subject)) {
                 applicable = options.highestPriority(applicable);
             }
         }
-        applicable.apply(source);
+        applicable.apply(subject);
     }
 }

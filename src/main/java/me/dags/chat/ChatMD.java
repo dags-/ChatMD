@@ -8,6 +8,7 @@ import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.config.DefaultConfig;
+import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
 import org.spongepowered.api.plugin.Plugin;
@@ -24,8 +25,8 @@ import java.util.Map;
 @Plugin(id = "chatmd", name = "ChatMD", version = "1.0", description = ".")
 public class ChatMD {
 
-    private static final String HEADER_FORMAT = "{:prefix} {header:name}: ";
-    private static final String BODY_FORMAT = "{body:message}";
+    private static final String HEADER_FORMAT = "{:md_prefix} {header:md_name}: ";
+    private static final String BODY_FORMAT = "{body:md_message}";
 
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
     private JoinListener joinListener;
@@ -70,13 +71,19 @@ public class ChatMD {
         ChatOptions defaultOptions = new ChatOptions("default", options.getNode("default"));
         List<ChatOptions> allOptions = new ArrayList<>();
         Map<?, ? extends ConfigurationNode> children = options.getChildrenMap();
+
         for (Map.Entry<?, ? extends ConfigurationNode> child : children.entrySet()) {
             String id = child.getKey().toString();
             ConfigurationNode node = child.getValue();
             allOptions.add(new ChatOptions(id, node));
         }
+        
         JoinListener listener = new JoinListener(defaultOptions, allOptions);
         joinListener = registerListener(joinListener, listener);
+
+        for (Player player : Sponge.getServer().getOnlinePlayers()) {
+            joinListener.setOptions(player);
+        }
     }
 
     private <T> T registerListener(T current, T next) {

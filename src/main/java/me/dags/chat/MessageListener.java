@@ -25,7 +25,7 @@ public final class MessageListener {
     }
 
     @Listener(order = Order.FIRST)
-    public void onChat(MessageChannelEvent event, @Root CommandSource source) {
+    public void onChat(MessageChannelEvent.Chat event, @Root CommandSource source) {
         MarkdownTemplate.Applier header = global.template(headerFormat).applier();
         MarkdownTemplate.Applier body = MarkdownSpec.create(source).template(bodyFormat).applier();
 
