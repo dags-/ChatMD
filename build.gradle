@@ -20,7 +20,7 @@ repositories {
 dependencies {
     apply plugin: 'java'
     compile "org.spongepowered:spongeapi:${spongeAPI}-$spongeChannel"
-    compile ('com.github.dags-:SpongeMD:1.0.2-SNAPSHOT') {
+    compile ('com.github.dags-:SpongeMD:1.0.4-SNAPSHOT') {
         exclude module: 'spongeapi'
     }
 }

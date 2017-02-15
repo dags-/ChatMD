@@ -1,32 +1,22 @@
 package me.dags.chat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.inject.Inject;
-import me.dags.spongemd.MarkdownSpec;
-import me.dags.spongemd.MarkdownTemplate;
 import ninja.leaping.configurate.ConfigurationNode;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
-import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandResult;
 import org.spongepowered.api.command.spec.CommandSpec;
-import org.spongepowered.api.config.ConfigDir;
-import org.spongepowered.api.data.key.Keys;
-import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.event.Listener;
-import org.spongepowered.api.event.Order;
-import org.spongepowered.api.event.filter.cause.Root;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
-import org.spongepowered.api.event.message.MessageChannelEvent;
 import org.spongepowered.api.plugin.Plugin;
-import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.text.Text;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author dags <dags@dags.me>
@@ -34,143 +24,92 @@ import java.util.*;
 @Plugin(id = "chatmd", name = "ChatMD", version = "1.0", description = ".")
 public class ChatMD {
 
-    private static final String DEFAULT_NAME = "guest";
-    private static final String DEFAULT_HEADER = "[gray](`[Guest]` {name}): ";
-    private static final String DEFAULT_BODY = "{message}";
+    private static final String HEADER_FORMAT = "{:prefix} {header:name}: ";
+    private static final String BODY_FORMAT = "{body:message}";
 
-    private final Path configDir;
-    private ChatListener chatListener;
+    private final ConfigurationLoader<CommentedConfigurationNode> loader;
+    private JoinListener joinListener;
+    private MessageListener messageListener;
+    private CommentedConfigurationNode config;
 
     @Inject
-    public ChatMD(@ConfigDir(sharedRoot = false) Path configDir) {
-        this.configDir = configDir;
-        this.chatListener = loadChatListener();
-        ChatMD.write(chatListener.defaultFormat, configDir.resolve("default.conf"));
+    public ChatMD(@DefaultConfig(sharedRoot = false) ConfigurationLoader<CommentedConfigurationNode> loader) {
+        this.loader = loader;
+        this.config = loader.createEmptyNode();
+        loadConfig();
     }
 
     @Listener
     public void init(GameInitializationEvent event) {
-        CommandSpec reload = CommandSpec.builder().permission("chat.command.reload").executor((src, args) -> {
-            src.sendMessage(Text.of("Reloading chat formats..."));
-            Sponge.getEventManager().unregisterListeners(chatListener);
-            chatListener = loadChatListener();
-            Sponge.getEventManager().registerListeners(ChatMD.this, chatListener);
+        reloadFormats();
+        reloadOptions();
+        saveConfig();
+
+        CommandSpec reload = CommandSpec.builder().permission("chatmd.command.reload").executor((src, args) -> {
+            src.sendMessage(Text.of("Reloading..."));
+            loadConfig();
+            reloadFormats();
+            reloadOptions();
             return CommandResult.success();
         }).build();
 
-        CommandSpec chat = CommandSpec.builder().child(reload, "reload").permission("chat.command").build();
-
-        Sponge.getCommandManager().register(this, chat, "format");
-        Sponge.getEventManager().registerListeners(this, chatListener);
+        CommandSpec main = CommandSpec.builder().child(reload, "reload").build();
+        Sponge.getCommandManager().register(this, main, "chatmd");
     }
 
-    public final static class ChatListener {
-
-        private final ChatFormat defaultFormat;
-        private final List<ChatFormat> formats;
-
-        private ChatListener(ChatFormat defaultFormat, Iterable<ChatFormat> formats) {
-            this.defaultFormat = defaultFormat;
-            this.formats = ImmutableList.copyOf(formats);
-        }
-
-        @Listener(order = Order.FIRST)
-        public void onChat(MessageChannelEvent.Chat event, @Root Player player) {
-            ChatFormat format = defaultFormat;
-            for (ChatFormat chatFormat : formats) {
-                if (chatFormat.applicableTo(player)) {
-                    format = format.highestPriority(chatFormat);
-                }
-            }
-            format.apply(event, player);
-        }
+    private synchronized void reloadFormats() {
+        ConfigurationNode formats = config.getNode("format");
+        String header = getOrInsert(formats, "header", HEADER_FORMAT);
+        String body = getOrInsert(formats, "body", BODY_FORMAT);
+        MessageListener listener = new MessageListener(header, body);
+        messageListener = registerListener(messageListener, listener);
     }
 
-    private final static class ChatFormat {
-
-        private static final ChatFormat DEFAULT = new ChatFormat(DEFAULT_HEADER, DEFAULT_BODY, "guest", -1);
-
-        private final MarkdownTemplate header;
-        private final MarkdownTemplate body;
-        private final String permission;
-        private final int priority;
-        private final String name;
-
-        private ChatFormat(String header, String body, String name, int priority) {
-            this.header = MarkdownSpec.create().template(header);
-            this.body = MarkdownSpec.create().template(body);
-            this.permission = "chat.format." + name.toLowerCase();
-            this.priority = priority;
-            this.name = name;
+    private synchronized void reloadOptions() {
+        ConfigurationNode options = config.getNode("options");
+        ChatOptions defaultOptions = new ChatOptions("default", options.getNode("default"));
+        List<ChatOptions> allOptions = new ArrayList<>();
+        Map<?, ? extends ConfigurationNode> children = options.getChildrenMap();
+        for (Map.Entry<?, ? extends ConfigurationNode> child : children.entrySet()) {
+            String id = child.getKey().toString();
+            ConfigurationNode node = child.getValue();
+            allOptions.add(new ChatOptions(id, node));
         }
-
-        private void apply(MessageChannelEvent.Chat event, Player player) {
-            Optional<Text> displayName = player.get(Keys.DISPLAY_NAME);
-            Object name = displayName.isPresent() ? displayName.get() : player.getName();
-            Text message = MarkdownSpec.create(player).render(event.getRawMessage().toPlain());
-            Text header = this.header.with("name", name).render();
-            Text body = this.body.with("message", message).render();
-            event.setMessage(header, body);
-        }
-
-        private ChatFormat highestPriority(ChatFormat other) {
-            return other.priority > this.priority ? other : this;
-        }
-
-        private boolean applicableTo(Subject subject) {
-            return subject.hasPermission(permission);
-        }
+        JoinListener listener = new JoinListener(defaultOptions, allOptions);
+        joinListener = registerListener(joinListener, listener);
     }
 
-    private ChatListener loadChatListener() {
-        ChatFormat defaultFormat = loadFormats(configDir.resolve("default.conf"));
-        List<ChatFormat> formats = ImmutableList.copyOf(loadAll(configDir));
-        return new ChatListener(defaultFormat, formats);
+    private <T> T registerListener(T current, T next) {
+        if (current != null) {
+            Sponge.getEventManager().unregisterListeners(current);
+        }
+        Sponge.getEventManager().registerListeners(this, next);
+        return next;
     }
 
-    private static List<ChatFormat> loadAll(Path dir) {
+    private void loadConfig() {
         try {
-            Iterator<Path> iterator = Files.newDirectoryStream(dir).iterator();
-            List<ChatFormat> list = new ArrayList<>();
-            while (iterator.hasNext()) {
-                ChatFormat format = loadFormats(iterator.next());
-                list.add(format);
-            }
-            return list;
-        } catch (IOException e) {
-            return Collections.emptyList();
-        }
-    }
-
-    private static ChatFormat loadFormats(Path path) {
-        if (Files.exists(path)) {
-            try {
-                ConfigurationLoader<CommentedConfigurationNode> loader = HoconConfigurationLoader.builder().setPath(path).build();
-                ConfigurationNode node = loader.load();
-                String name = node.getNode("name").getString(DEFAULT_NAME);
-                String header = node.getNode("header").getString(DEFAULT_HEADER);
-                String body = node.getNode("body").getString(DEFAULT_BODY);
-                int priority = node.getNode("priority").getInt(-1);
-                return new ChatFormat(header, body, name, priority);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return ChatFormat.DEFAULT;
-    }
-
-    private static void write(ChatFormat format, Path path) {
-        try {
-            Files.createDirectories(path.getParent());
-            ConfigurationLoader<CommentedConfigurationNode> loader = HoconConfigurationLoader.builder().setPath(path).build();
-            ConfigurationNode node = loader.createEmptyNode();
-            node.getNode("name").setValue(format.name);
-            node.getNode("header").setValue(format.header.toString());
-            node.getNode("body").setValue(format.body.toString());
-            node.getNode("priority").setValue(format.priority);
-            loader.save(node);
+            this.config = loader.load();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void saveConfig() {
+        try {
+            loader.save(config);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    static <T> T getOrInsert(ConfigurationNode parent, String key, T def) {
+        ConfigurationNode node = parent.getNode(key);
+        if (node.isVirtual()) {
+            node.setValue(def);
+            return def;
+        }
+        return (T) node.getValue();
     }
 }
