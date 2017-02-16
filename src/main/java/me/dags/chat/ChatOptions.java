@@ -9,9 +9,9 @@ import org.spongepowered.api.service.permission.SubjectData;
  */
 class ChatOptions {
 
-    static final String PREFIX = "md_prefix";
-    static final String NAME = "md_name";
-    static final String MESSAGE = "md_message";
+    static final String PREFIX = "prefix";
+    static final String NAME = "name";
+    static final String MESSAGE = "message";
 
     private final String permission;
     private final String prefix;
