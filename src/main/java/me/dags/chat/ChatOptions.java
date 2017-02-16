@@ -9,9 +9,9 @@ import org.spongepowered.api.service.permission.SubjectData;
  */
 class ChatOptions {
 
-    static final String PREFIX = "prefix";
-    static final String NAME = "name";
-    static final String MESSAGE = "message";
+    static final String PREFIX = "md_prefix";
+    static final String NAME = "md_name";
+    static final String MESSAGE = "md_message";
 
     private final String permission;
     private final String prefix;
@@ -22,7 +22,7 @@ class ChatOptions {
     ChatOptions(String id, ConfigurationNode node) {
         this.permission = "chatmd.format." + id.toLowerCase();
         this.priority = ChatMD.getOrInsert(node, "priority", -1);
-        this.prefix = ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]` )");
+        this.prefix = ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]`)");
         this.name = ChatMD.getOrInsert(node, "name", "[gray]({.})");
         this.chat = ChatMD.getOrInsert(node, "chat", "{.}");
     }
