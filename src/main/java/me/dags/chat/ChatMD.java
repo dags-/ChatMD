@@ -24,8 +24,8 @@ import java.util.Map;
 @Plugin(id = "chatmd", name = "ChatMD", version = "1.0", description = ".")
 public class ChatMD {
 
-    private static final String HEADER_FORMAT = "{:prefix} {header:name}: ";
-    private static final String BODY_FORMAT = "{body:message}";
+    private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}", ChatOptions.PREFIX, ChatOptions.NAME);
+    private static final String BODY_FORMAT = String.format("{body:%s}", ChatOptions.MESSAGE);
 
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
     private JoinListener joinListener;
@@ -50,6 +50,7 @@ public class ChatMD {
             loadConfig();
             reloadFormats();
             reloadOptions();
+            saveConfig();
             return CommandResult.success();
         }).build();
 
@@ -89,7 +90,7 @@ public class ChatMD {
 
     private void loadConfig() {
         try {
-            this.config = loader.load();
+            config = loader.load();
         } catch (IOException e) {
             e.printStackTrace();
         }
