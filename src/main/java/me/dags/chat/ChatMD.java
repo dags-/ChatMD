@@ -24,13 +24,12 @@ import java.util.Map;
 @Plugin(id = "chatmd", name = "ChatMD", version = "1.0", description = ".")
 public class ChatMD {
 
-    private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}", ChatOptions.PREFIX, ChatOptions.NAME);
+    private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}: ", ChatOptions.PREFIX, ChatOptions.NAME);
     private static final String BODY_FORMAT = String.format("{body:%s}", ChatOptions.MESSAGE);
 
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
-    private JoinListener joinListener;
-    private MessageListener messageListener;
     private CommentedConfigurationNode config;
+    private MessageListener messageListener;
 
     @Inject
     public ChatMD(@DefaultConfig(sharedRoot = false) ConfigurationLoader<CommentedConfigurationNode> loader) {
@@ -41,15 +40,13 @@ public class ChatMD {
 
     @Listener
     public void init(GameInitializationEvent event) {
-        reloadFormats();
-        reloadOptions();
+        reload();
         saveConfig();
 
         CommandSpec reload = CommandSpec.builder().permission("chatmd.command.reload").executor((src, args) -> {
             src.sendMessage(Text.of("Reloading..."));
             loadConfig();
-            reloadFormats();
-            reloadOptions();
+            reload();
             saveConfig();
             return CommandResult.success();
         }).build();
@@ -58,34 +55,24 @@ public class ChatMD {
         Sponge.getCommandManager().register(this, main, "chatmd");
     }
 
-    private synchronized void reloadFormats() {
+    private synchronized void reload() {
         ConfigurationNode formats = config.getNode("format");
         String header = getOrInsert(formats, "header", HEADER_FORMAT);
         String body = getOrInsert(formats, "body", BODY_FORMAT);
-        MessageListener listener = new MessageListener(header, body);
-        messageListener = registerListener(messageListener, listener);
-    }
 
-    private synchronized void reloadOptions() {
         ConfigurationNode options = config.getNode("options");
         ChatOptions defaultOptions = new ChatOptions("default", options.getNode("default"));
         List<ChatOptions> allOptions = new ArrayList<>();
         Map<?, ? extends ConfigurationNode> children = options.getChildrenMap();
+
         for (Map.Entry<?, ? extends ConfigurationNode> child : children.entrySet()) {
             String id = child.getKey().toString();
             ConfigurationNode node = child.getValue();
             allOptions.add(new ChatOptions(id, node));
         }
-        JoinListener listener = new JoinListener(defaultOptions, allOptions);
-        joinListener = registerListener(joinListener, listener);
-    }
 
-    private <T> T registerListener(T current, T next) {
-        if (current != null) {
-            Sponge.getEventManager().unregisterListeners(current);
-        }
-        Sponge.getEventManager().registerListeners(this, next);
-        return next;
+        MessageListener listener = new MessageListener(defaultOptions, allOptions, header, body);
+        messageListener = registerListener(messageListener, listener);
     }
 
     private void loadConfig() {
@@ -102,6 +89,14 @@ public class ChatMD {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private <T> T registerListener(T current, T next) {
+        if (current != null) {
+            Sponge.getEventManager().unregisterListeners(current);
+        }
+        Sponge.getEventManager().registerListeners(this, next);
+        return next;
     }
 
     @SuppressWarnings("unchecked")

@@ -1,8 +1,8 @@
 package me.dags.chat;
 
+import me.dags.spongemd.MarkdownTemplate;
 import ninja.leaping.configurate.ConfigurationNode;
 import org.spongepowered.api.service.permission.Subject;
-import org.spongepowered.api.service.permission.SubjectData;
 
 /**
  * @author dags <dags@dags.me>
@@ -14,10 +14,10 @@ class ChatOptions {
     static final String MESSAGE = "message";
 
     private final String permission;
+    private final int priority;
     private final String prefix;
     private final String name;
     private final String chat;
-    private final int priority;
 
     ChatOptions(String id, ConfigurationNode node) {
         this.permission = "chatmd.format." + id.toLowerCase();
@@ -35,10 +35,7 @@ class ChatOptions {
         return subject.hasPermission(permission);
     }
 
-    void apply(Subject subject) {
-        SubjectData data = subject.getTransientSubjectData();
-        data.setOption(SubjectData.GLOBAL_CONTEXT, ChatOptions.PREFIX, prefix);
-        data.setOption(SubjectData.GLOBAL_CONTEXT, ChatOptions.NAME, name);
-        data.setOption(SubjectData.GLOBAL_CONTEXT, ChatOptions.MESSAGE, chat);
+    MarkdownTemplate.Applier apply(MarkdownTemplate template) {
+        return template.with(ChatOptions.PREFIX, prefix).with(ChatOptions.NAME, name).with(ChatOptions.MESSAGE, chat);
     }
 }

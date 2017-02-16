@@ -1,82 +1,53 @@
 package me.dags.chat;
 
+import com.google.common.collect.ImmutableList;
 import me.dags.spongemd.MarkdownSpec;
 import me.dags.spongemd.MarkdownTemplate;
-import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.Order;
 import org.spongepowered.api.event.filter.cause.Root;
 import org.spongepowered.api.event.message.MessageChannelEvent;
-import org.spongepowered.api.service.permission.SubjectData;
-import org.spongepowered.api.text.TextElement;
-import org.spongepowered.api.util.Tuple;
+import org.spongepowered.api.service.permission.Subject;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 /**
  * @author dags <dags@dags.me>
  */
 public final class MessageListener {
 
-    private final String headerFormat;
-    private final String bodyFormat;
-    private final MarkdownSpec global;
+    private final MarkdownTemplate bodyFormat;
+    private final MarkdownTemplate headerFormat;
+    private final ChatOptions defaultOptions;
+    private final ImmutableList<ChatOptions> options;
 
-    MessageListener(String header, String body) {
-        this.headerFormat = header;
-        this.bodyFormat = body;
-        this.global = MarkdownSpec.create();
+    MessageListener(ChatOptions defaultOptions, List<ChatOptions> options, String header, String body) {
+        MarkdownSpec spec = MarkdownSpec.create();
+        this.options = ImmutableList.copyOf(options);
+        this.defaultOptions = defaultOptions;
+        this.headerFormat = spec.template(header);
+        this.bodyFormat = spec.template(body);
     }
 
     @Listener(order = Order.FIRST)
-    public void onMessage(MessageChannelEvent event, @Root Player source) {
-        if (MessageChannelEvent.Chat.class.isInstance(event)) {
-            // Set formatting if the message hasn't already been modified
-            if (event.getOriginalMessage().equals(event.getMessage())) {
-                MarkdownTemplate.Applier header = global.template(headerFormat).applier();
-                MarkdownTemplate.Applier body = MarkdownSpec.create(source).template(bodyFormat).applier();
+    public void onChat(MessageChannelEvent.Chat event, @Root Player player) {
+        ChatOptions options = getOptions(player);
 
-                header.inherit(event.getFormatter().getHeader()).withOptions(source, SubjectData.GLOBAL_CONTEXT);
-                body.inherit(event.getFormatter().getBody()).withOptions(source, SubjectData.GLOBAL_CONTEXT);
+        MarkdownTemplate.Applier header = options.apply(headerFormat).inherit(event.getFormatter().getHeader());
+        MarkdownTemplate.Applier body = options.apply(bodyFormat).inherit(event.getFormatter().getBody());
 
-                event.getFormatter().getHeader().set(0, header);
-                event.getFormatter().getBody().set(0, body);
-            } else {
-                transformParams(event, source, Tuple.of(ChatOptions.NAME, "header"), Tuple.of(ChatOptions.MESSAGE, "body"));
-            }
-        } else {
-            // Apply ChatOption if event contains 'name' element
-            transformParams(event, source, Tuple.of(ChatOptions.NAME, "name"));
-        }
+        event.getFormatter().getHeader().set(0, header);
+        event.getFormatter().getBody().set(0, body);
     }
 
-    private void transformParams(MessageChannelEvent event, CommandSource source, Tuple<?, ?>... paramMappings) {
-        Map<String, String> options = source.getSubjectData().getOptions(SubjectData.GLOBAL_CONTEXT);
-        Map<String, MarkdownTemplate> templates = new HashMap<>();
-
-        for (Tuple<?, ?> tuple : paramMappings) {
-            String templateName = tuple.getFirst().toString();
-            String paramName = tuple.getSecond().toString();
-
-            String template = options.get(templateName);
-            if (template != null) {
-                templates.put(paramName, global.template(template));
+    private ChatOptions getOptions(Subject subject) {
+        ChatOptions applicable = defaultOptions;
+        for (ChatOptions option : options) {
+            if (option.applicableTo(subject)) {
+                applicable = option.highestPriority(applicable);
             }
         }
-
-        if (!templates.isEmpty()) {
-            event.getFormatter().getAll().forEach(formatter -> formatter.getAll().forEach(applier -> {
-                for (Map.Entry<String, MarkdownTemplate> template : templates.entrySet()) {
-                    String paramName = template.getKey();
-                    TextElement element = applier.getParameter(paramName);
-                    if (element != null) {
-                        TextElement transformed = template.getValue().with(element).with(paramName, element).render();
-                        applier.setParameter(paramName, transformed);
-                    }
-                }
-            }));
-        }
+        return applicable;
     }
 }
