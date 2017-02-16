@@ -22,7 +22,7 @@ class ChatOptions {
     ChatOptions(String id, ConfigurationNode node) {
         this.permission = "chatmd.format." + id.toLowerCase();
         this.priority = ChatMD.getOrInsert(node, "priority", -1);
-        this.prefix = ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]` )");
+        this.prefix = ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]`)");
         this.name = ChatMD.getOrInsert(node, "name", "[gray]({.})");
         this.chat = ChatMD.getOrInsert(node, "chat", "{.}");
     }
