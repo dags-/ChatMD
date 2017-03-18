@@ -1,5 +1,6 @@
 package me.dags.chat;
 
+import me.dags.spongemd.MarkdownSpec;
 import me.dags.spongemd.MarkdownTemplate;
 import ninja.leaping.configurate.ConfigurationNode;
 import org.spongepowered.api.service.permission.Subject;
@@ -10,21 +11,22 @@ import org.spongepowered.api.service.permission.Subject;
 class ChatOptions {
 
     static final String PREFIX = "prefix";
-    static final String NAME = "name";
-    static final String MESSAGE = "message";
+    static final String NAME = "username";
+    static final String MESSAGE = "chat";
 
+    private final MarkdownTemplate prefix;
+    private final MarkdownTemplate name;
+    private final MarkdownTemplate chat;
     private final String permission;
     private final int priority;
-    private final String prefix;
-    private final String name;
-    private final String chat;
 
     ChatOptions(String id, ConfigurationNode node) {
+        MarkdownSpec spec = MarkdownSpec.create();
         this.permission = "chatmd.format." + id.toLowerCase();
         this.priority = ChatMD.getOrInsert(node, "priority", -1);
-        this.prefix = ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]`)");
-        this.name = ChatMD.getOrInsert(node, "name", "[gray]({.})");
-        this.chat = ChatMD.getOrInsert(node, "chat", "{.}");
+        this.prefix = spec.template(ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]`)"));
+        this.name = spec.template(ChatMD.getOrInsert(node, "username", "[gray]({.})"));
+        this.chat = spec.template(ChatMD.getOrInsert(node, "chat", "{.}"));
     }
 
     ChatOptions highestPriority(ChatOptions other) {

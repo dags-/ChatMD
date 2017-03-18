@@ -9,6 +9,7 @@ import org.spongepowered.api.event.Order;
 import org.spongepowered.api.event.filter.cause.Root;
 import org.spongepowered.api.event.message.MessageChannelEvent;
 import org.spongepowered.api.service.permission.Subject;
+import org.spongepowered.api.service.permission.SubjectData;
 
 import java.util.List;
 
@@ -34,8 +35,8 @@ public final class MessageListener {
     public void onChat(MessageChannelEvent.Chat event, @Root Player player) {
         ChatOptions options = getOptions(player);
 
-        MarkdownTemplate.Applier header = options.apply(headerFormat).inherit(event.getFormatter().getHeader());
-        MarkdownTemplate.Applier body = options.apply(bodyFormat).inherit(event.getFormatter().getBody());
+        MarkdownTemplate.Applier header = options.apply(headerFormat).withOptions(player, SubjectData.GLOBAL_CONTEXT).inherit(event.getFormatter().getHeader());
+        MarkdownTemplate.Applier body = options.apply(bodyFormat).withOptions(player, SubjectData.GLOBAL_CONTEXT).inherit(event.getFormatter().getBody());
 
         event.getFormatter().getHeader().set(0, header);
         event.getFormatter().getBody().set(0, body);
