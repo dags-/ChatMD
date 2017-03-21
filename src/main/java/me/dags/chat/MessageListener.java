@@ -16,6 +16,7 @@ import java.util.List;
 /**
  * @author dags <dags@dags.me>
  */
+@SuppressWarnings("WeakerAccess")
 public final class MessageListener {
 
     private final MarkdownTemplate bodyFormat;
@@ -34,9 +35,17 @@ public final class MessageListener {
     @Listener(order = Order.FIRST)
     public void onChat(MessageChannelEvent.Chat event, @Root Player player) {
         ChatOptions options = getOptions(player);
+        MarkdownTemplate chatTemplate = MarkdownSpec.create(player).template(options.getChat());
 
-        MarkdownTemplate.Applier header = options.apply(headerFormat).withOptions(player, SubjectData.GLOBAL_CONTEXT).inherit(event.getFormatter().getHeader());
-        MarkdownTemplate.Applier body = options.apply(bodyFormat).withOptions(player, SubjectData.GLOBAL_CONTEXT).inherit(event.getFormatter().getBody());
+        MarkdownTemplate.Applier header = options.apply(headerFormat)
+                .withOptions(player, SubjectData.GLOBAL_CONTEXT)
+                .inherit(event.getFormatter().getHeader())
+                .with(ChatOptions.CHAT, chatTemplate);
+
+        MarkdownTemplate.Applier body = options.apply(bodyFormat)
+                .withOptions(player, SubjectData.GLOBAL_CONTEXT)
+                .inherit(event.getFormatter().getBody())
+                .with(ChatOptions.CHAT, chatTemplate);
 
         event.getFormatter().getHeader().set(0, header);
         event.getFormatter().getBody().set(0, body);

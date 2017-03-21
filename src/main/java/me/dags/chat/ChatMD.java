@@ -25,7 +25,7 @@ import java.util.Map;
 public class ChatMD {
 
     private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}: ", ChatOptions.PREFIX, ChatOptions.NAME);
-    private static final String BODY_FORMAT = String.format("{body:%s}", ChatOptions.MESSAGE);
+    private static final String BODY_FORMAT = String.format("{body:%s}", ChatOptions.CHAT);
 
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
     private CommentedConfigurationNode config;

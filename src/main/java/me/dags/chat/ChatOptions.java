@@ -12,11 +12,11 @@ class ChatOptions {
 
     static final String PREFIX = "PREFIX";
     static final String NAME = "NAME";
-    static final String MESSAGE = "CHAT";
+    static final String CHAT = "CHAT";
 
     private final MarkdownTemplate prefix;
     private final MarkdownTemplate name;
-    private final MarkdownTemplate chat;
+    private final String chat;
     private final String permission;
     private final int priority;
 
@@ -26,7 +26,11 @@ class ChatOptions {
         this.priority = ChatMD.getOrInsert(node, "priority", -1);
         this.prefix = spec.template(ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]`)"));
         this.name = spec.template(ChatMD.getOrInsert(node, "name", "[gray]({.})"));
-        this.chat = spec.template(ChatMD.getOrInsert(node, "chat", "{.}"));
+        this.chat = ChatMD.getOrInsert(node, "chat", "{.}");
+    }
+
+    String getChat() {
+        return chat;
     }
 
     ChatOptions highestPriority(ChatOptions other) {
@@ -38,6 +42,6 @@ class ChatOptions {
     }
 
     MarkdownTemplate.Applier apply(MarkdownTemplate template) {
-        return template.with(ChatOptions.PREFIX, prefix).with(ChatOptions.NAME, name).with(ChatOptions.MESSAGE, chat);
+        return template.with(ChatOptions.PREFIX, prefix).with(ChatOptions.NAME, name);
     }
 }
