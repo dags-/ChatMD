@@ -1,2 +1,2 @@
-# ChatMD
-A tiny chat plugin utilising SpongeMD
+# MUChat
+A tiny chat plugin utilising TextMU
