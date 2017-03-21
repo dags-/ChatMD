@@ -10,9 +10,9 @@ import org.spongepowered.api.service.permission.Subject;
  */
 class ChatOptions {
 
-    static final String PREFIX = "prefix";
-    static final String NAME = "username";
-    static final String MESSAGE = "chat";
+    static final String PREFIX = "PREFIX";
+    static final String NAME = "NAME";
+    static final String MESSAGE = "CHAT";
 
     private final MarkdownTemplate prefix;
     private final MarkdownTemplate name;
@@ -25,7 +25,7 @@ class ChatOptions {
         this.permission = "chatmd.format." + id.toLowerCase();
         this.priority = ChatMD.getOrInsert(node, "priority", -1);
         this.prefix = spec.template(ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]`)"));
-        this.name = spec.template(ChatMD.getOrInsert(node, "username", "[gray]({.})"));
+        this.name = spec.template(ChatMD.getOrInsert(node, "name", "[gray]({.})"));
         this.chat = spec.template(ChatMD.getOrInsert(node, "chat", "{.}"));
     }
 
