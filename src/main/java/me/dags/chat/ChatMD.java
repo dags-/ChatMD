@@ -5,13 +5,11 @@ import ninja.leaping.configurate.ConfigurationNode;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import org.spongepowered.api.Sponge;
-import org.spongepowered.api.command.CommandResult;
-import org.spongepowered.api.command.spec.CommandSpec;
 import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.game.GameReloadEvent;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
 import org.spongepowered.api.plugin.Plugin;
-import org.spongepowered.api.text.Text;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,6 +19,7 @@ import java.util.Map;
 /**
  * @author dags <dags@dags.me>
  */
+@SuppressWarnings("WeakerAccess")
 @Plugin(id = "chatmd", name = "ChatMD", version = "1.0", description = ".")
 public class ChatMD {
 
@@ -28,75 +27,60 @@ public class ChatMD {
     private static final String BODY_FORMAT = String.format("{body:%s}", ChatOptions.CHAT);
 
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
-    private CommentedConfigurationNode config;
     private MessageListener messageListener;
 
     @Inject
     public ChatMD(@DefaultConfig(sharedRoot = false) ConfigurationLoader<CommentedConfigurationNode> loader) {
         this.loader = loader;
-        this.config = loader.createEmptyNode();
-        loadConfig();
     }
 
     @Listener
     public void init(GameInitializationEvent event) {
-        reload();
-        saveConfig();
-
-        CommandSpec reload = CommandSpec.builder().permission("chatmd.command.reload").executor((src, args) -> {
-            src.sendMessage(Text.of("Reloading..."));
-            loadConfig();
-            reload();
-            saveConfig();
-            return CommandResult.success();
-        }).build();
-
-        CommandSpec main = CommandSpec.builder().child(reload, "reload").build();
-        Sponge.getCommandManager().register(this, main, "chatmd");
+        reload(null);
     }
 
-    private synchronized void reload() {
-        ConfigurationNode formats = config.getNode("format");
-        String header = getOrInsert(formats, "header", HEADER_FORMAT);
-        String body = getOrInsert(formats, "body", BODY_FORMAT);
+    @Listener
+    public void reload(GameReloadEvent event) {
+        CommentedConfigurationNode config = loadConfig();
 
-        ConfigurationNode options = config.getNode("options");
-        ChatOptions defaultOptions = new ChatOptions("default", options.getNode("default"));
-        List<ChatOptions> allOptions = new ArrayList<>();
-        Map<?, ? extends ConfigurationNode> children = options.getChildrenMap();
+        ConfigurationNode formatNode = config.getNode("format");
+        String header = getOrInsert(formatNode, "header", HEADER_FORMAT);
+        String body = getOrInsert(formatNode, "body", BODY_FORMAT);
 
-        for (Map.Entry<?, ? extends ConfigurationNode> child : children.entrySet()) {
+        ConfigurationNode optionsNode = config.getNode("options");
+        ChatOptions defaultOptions = new ChatOptions("default", optionsNode.getNode("default"));
+        List<ChatOptions> options = new ArrayList<>();
+
+        for (Map.Entry<?, ? extends ConfigurationNode> child : optionsNode.getChildrenMap().entrySet()) {
             String id = child.getKey().toString();
             ConfigurationNode node = child.getValue();
-            allOptions.add(new ChatOptions(id, node));
+            options.add(new ChatOptions(id, node));
         }
 
-        MessageListener listener = new MessageListener(defaultOptions, allOptions, header, body);
-        messageListener = registerListener(messageListener, listener);
+        if (messageListener != null) {
+            Sponge.getEventManager().unregisterListeners(messageListener);
+        }
+
+        messageListener = new MessageListener(defaultOptions, options, header, body);
+        Sponge.getEventManager().registerListeners(this, messageListener);
+
+        saveConfig(config);
     }
 
-    private void loadConfig() {
+    private CommentedConfigurationNode loadConfig() {
         try {
-            config = loader.load();
+            return loader.load();
         } catch (IOException e) {
-            e.printStackTrace();
+            return loader.createEmptyNode();
         }
     }
 
-    private void saveConfig() {
+    private void saveConfig(CommentedConfigurationNode config) {
         try {
             loader.save(config);
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private <T> T registerListener(T current, T next) {
-        if (current != null) {
-            Sponge.getEventManager().unregisterListeners(current);
-        }
-        Sponge.getEventManager().registerListeners(this, next);
-        return next;
     }
 
     @SuppressWarnings("unchecked")
