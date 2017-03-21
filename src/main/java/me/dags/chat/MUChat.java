@@ -20,8 +20,8 @@ import java.util.Map;
  * @author dags <dags@dags.me>
  */
 @SuppressWarnings("WeakerAccess")
-@Plugin(id = "chatmd", name = "ChatMD", version = "1.0", description = ".")
-public class ChatMD {
+@Plugin(id = "muchat", name = "MUChat", version = "1.0", description = ".")
+public class MUChat {
 
     private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}: ", ChatOptions.PREFIX, ChatOptions.NAME);
     private static final String BODY_FORMAT = String.format("{body:%s}", ChatOptions.CHAT);
@@ -30,7 +30,7 @@ public class ChatMD {
     private MessageListener messageListener;
 
     @Inject
-    public ChatMD(@DefaultConfig(sharedRoot = false) ConfigurationLoader<CommentedConfigurationNode> loader) {
+    public MUChat(@DefaultConfig(sharedRoot = false) ConfigurationLoader<CommentedConfigurationNode> loader) {
         this.loader = loader;
     }
 

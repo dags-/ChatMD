@@ -1,7 +1,7 @@
 package me.dags.chat;
 
-import me.dags.spongemd.MarkdownSpec;
-import me.dags.spongemd.MarkdownTemplate;
+import me.dags.textmu.MarkupSpec;
+import me.dags.textmu.MarkupTemplate;
 import ninja.leaping.configurate.ConfigurationNode;
 import org.spongepowered.api.service.permission.Subject;
 
@@ -14,19 +14,19 @@ class ChatOptions {
     static final String NAME = "NAME";
     static final String CHAT = "CHAT";
 
-    private final MarkdownTemplate prefix;
-    private final MarkdownTemplate name;
+    private final MarkupTemplate prefix;
+    private final MarkupTemplate name;
     private final String chat;
     private final String permission;
     private final int priority;
 
     ChatOptions(String id, ConfigurationNode node) {
-        MarkdownSpec spec = MarkdownSpec.create();
+        MarkupSpec spec = MarkupSpec.create();
         this.permission = "chatmd.format." + id.toLowerCase();
-        this.priority = ChatMD.getOrInsert(node, "priority", -1);
-        this.prefix = spec.template(ChatMD.getOrInsert(node, "prefix", "[gray](`[Guest]`)"));
-        this.name = spec.template(ChatMD.getOrInsert(node, "name", "[gray]({.})"));
-        this.chat = ChatMD.getOrInsert(node, "chat", "{.}");
+        this.priority = MUChat.getOrInsert(node, "priority", -1);
+        this.prefix = spec.template(MUChat.getOrInsert(node, "prefix", "[gray](`[Guest]`)"));
+        this.name = spec.template(MUChat.getOrInsert(node, "name", "[gray]({.})"));
+        this.chat = MUChat.getOrInsert(node, "chat", "{.}");
     }
 
     String getChat() {
@@ -41,7 +41,7 @@ class ChatOptions {
         return subject.hasPermission(permission);
     }
 
-    MarkdownTemplate.Applier apply(MarkdownTemplate template) {
+    MarkupTemplate.Applier apply(MarkupTemplate template) {
         return template.with(ChatOptions.PREFIX, prefix).with(ChatOptions.NAME, name);
     }
 }

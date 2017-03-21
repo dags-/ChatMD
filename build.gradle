@@ -19,17 +19,15 @@ repositories {
 
 dependencies {
     apply plugin: 'java'
-    compile "org.spongepowered:spongeapi:${spongeAPI}-$spongeChannel"
-    compile ('com.github.dags-:SpongeMD:1.0.5-SNAPSHOT-1') {
-        exclude module: 'spongeapi'
-    }
+    compile "org.spongepowered:spongeapi:${spongeAPI}-${spongeChannel}"
+    compile 'com.github.dags-:TextMU:0.1'
 }
 
 shadowJar {
     dependencies {
-        include dependency('com.github.dags-:SpongeMD')
+        include dependency('com.github.dags-:TextMU')
     }
-    relocate 'me.dags.spongemd', 'me.dags.chat.libs.spongemd'
+    relocate 'me.dags.textmu', 'me.dags.chat.libs.textmu'
     archiveName = "${baseName}-${version}-SpongeAPI-${spongeAPI}.jar"
 }
 
