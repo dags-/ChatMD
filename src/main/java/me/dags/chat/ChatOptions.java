@@ -23,10 +23,10 @@ class ChatOptions {
     ChatOptions(String id, ConfigurationNode node) {
         MarkupSpec spec = MarkupSpec.create();
         this.permission = "chatmd.format." + id.toLowerCase();
-        this.priority = MUChat.getOrInsert(node, "priority", -1);
-        this.prefix = spec.template(MUChat.getOrInsert(node, "prefix", "[gray](`[Guest]`)"));
-        this.name = spec.template(MUChat.getOrInsert(node, "name", "[gray]({.})"));
-        this.chat = MUChat.getOrInsert(node, "chat", "{.}");
+        this.priority = node.getNode("priority").getInt(-1);
+        this.prefix = spec.template(node.getNode("prefix").getString("[gray](`[Guest]`)"));
+        this.name = spec.template(node.getNode("name").getString("[gray]({.})"));
+        this.chat = node.getNode("chat").getString("{.}");
     }
 
     String getChat() {

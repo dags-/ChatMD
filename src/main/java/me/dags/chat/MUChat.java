@@ -2,6 +2,7 @@ package me.dags.chat;
 
 import com.google.inject.Inject;
 import ninja.leaping.configurate.ConfigurationNode;
+import ninja.leaping.configurate.ConfigurationOptions;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import org.spongepowered.api.Sponge;
@@ -42,12 +43,11 @@ public class MUChat {
     @Listener
     public void reload(GameReloadEvent event) {
         CommentedConfigurationNode config = loadConfig();
-
         ConfigurationNode formatNode = config.getNode("format");
-        String header = getOrInsert(formatNode, "header", HEADER_FORMAT);
-        String body = getOrInsert(formatNode, "body", BODY_FORMAT);
-
         ConfigurationNode optionsNode = config.getNode("options");
+
+        String header = formatNode.getNode("header").getString(HEADER_FORMAT);
+        String body = formatNode.getNode("body").getString(BODY_FORMAT);
         ChatOptions defaultOptions = new ChatOptions("default", optionsNode.getNode("default"));
         List<ChatOptions> options = new ArrayList<>();
 
@@ -69,7 +69,7 @@ public class MUChat {
 
     private CommentedConfigurationNode loadConfig() {
         try {
-            return loader.load();
+            return loader.load(ConfigurationOptions.defaults().setShouldCopyDefaults(true));
         } catch (IOException e) {
             return loader.createEmptyNode();
         }
@@ -81,15 +81,5 @@ public class MUChat {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    static <T> T getOrInsert(ConfigurationNode parent, String key, T def) {
-        ConfigurationNode node = parent.getNode(key);
-        if (node.isVirtual()) {
-            node.setValue(def);
-            return def;
-        }
-        return (T) node.getValue();
     }
 }
