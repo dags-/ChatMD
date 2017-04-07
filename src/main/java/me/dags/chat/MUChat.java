@@ -7,15 +7,18 @@ import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.DefaultConfig;
+import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.game.GameReloadEvent;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
 import org.spongepowered.api.plugin.Plugin;
+import org.spongepowered.api.scheduler.Task;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author dags <dags@dags.me>
@@ -24,11 +27,11 @@ import java.util.Map;
 @Plugin(id = "muchat", name = "MUChat", version = "1.0", description = ".")
 public class MUChat {
 
-    private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}: ", ChatOptions.PREFIX, ChatOptions.NAME);
-    private static final String BODY_FORMAT = String.format("{body:%s}", ChatOptions.CHAT);
+    private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}: ", Options.PREFIX, Options.NAME);
+    private static final String BODY_FORMAT = String.format("{body:%s}", Options.CHAT);
 
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
-    private MessageListener messageListener;
+    private volatile Formatter formatter;
 
     @Inject
     public MUChat(@DefaultConfig(sharedRoot = false) ConfigurationLoader<CommentedConfigurationNode> loader) {
@@ -38,6 +41,7 @@ public class MUChat {
     @Listener
     public void init(GameInitializationEvent event) {
         reload(null);
+        Task.builder().execute(this::syncAll).delay(30, TimeUnit.MINUTES).interval(30, TimeUnit.MINUTES).submit(this);
     }
 
     @Listener
@@ -48,23 +52,34 @@ public class MUChat {
 
         String header = formatNode.getNode("header").getString(HEADER_FORMAT);
         String body = formatNode.getNode("body").getString(BODY_FORMAT);
-        ChatOptions defaultOptions = new ChatOptions("default", optionsNode.getNode("default"));
-        List<ChatOptions> options = new ArrayList<>();
+        Options defaultOptions = new Options("default", optionsNode.getNode("default"));
+        List<Options> options = new ArrayList<>();
 
         for (Map.Entry<?, ? extends ConfigurationNode> child : optionsNode.getChildrenMap().entrySet()) {
             String id = child.getKey().toString();
             ConfigurationNode node = child.getValue();
-            options.add(new ChatOptions(id, node));
+            options.add(new Options(id, node));
         }
 
-        if (messageListener != null) {
-            Sponge.getEventManager().unregisterListeners(messageListener);
+        if (formatter != null) {
+            Sponge.getEventManager().unregisterListeners(formatter);
         }
 
-        messageListener = new MessageListener(defaultOptions, options, header, body);
-        Sponge.getEventManager().registerListeners(this, messageListener);
+        formatter = new Formatter(defaultOptions, options, header, body);
+        Sponge.getEventManager().registerListeners(this, formatter);
 
         saveConfig(config);
+
+        syncAll();
+    }
+
+    private void syncAll() {
+        if (this.formatter != null) {
+            final Formatter formatter = this.formatter;
+            for (Player player : Sponge.getServer().getOnlinePlayers()) {
+                formatter.syncTabs(player);
+            }
+        }
     }
 
     private CommentedConfigurationNode loadConfig() {
