@@ -1,6 +1,7 @@
 package me.dags.chat;
 
 import com.google.common.collect.ImmutableList;
+import java.util.List;
 import me.dags.textmu.MarkupSpec;
 import me.dags.textmu.MarkupTemplate;
 import org.spongepowered.api.Sponge;
@@ -14,12 +15,9 @@ import org.spongepowered.api.service.permission.Subject;
 import org.spongepowered.api.service.permission.SubjectData;
 import org.spongepowered.api.text.Text;
 
-import java.util.List;
-
 /**
  * @author dags <dags@dags.me>
  */
-@SuppressWarnings("WeakerAccess")
 public final class Formatter {
 
     private final MarkupTemplate bodyFormat;
@@ -41,13 +39,13 @@ public final class Formatter {
         MarkupTemplate chatTemplate = MarkupSpec.create(player).template(options.getChat());
 
         MarkupTemplate.Applier header = options.apply(headerFormat)
-                .withOptions(player, SubjectData.GLOBAL_CONTEXT)
-                .inherit(event.getFormatter().getHeader())
+                .with(player.getSubjectData().getOptions(SubjectData.GLOBAL_CONTEXT))
+                .with(event.getFormatter().getHeader())
                 .with(Options.CHAT, chatTemplate);
 
         MarkupTemplate.Applier body = options.apply(bodyFormat)
-                .withOptions(player, SubjectData.GLOBAL_CONTEXT)
-                .inherit(event.getFormatter().getBody())
+                .with(player.getSubjectData().getOptions(SubjectData.GLOBAL_CONTEXT))
+                .with(event.getFormatter().getBody())
                 .with(Options.CHAT, chatTemplate);
 
         event.getFormatter().getHeader().set(0, header);

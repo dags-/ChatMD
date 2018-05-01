@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
  * @author dags <dags@dags.me>
  */
 @SuppressWarnings("WeakerAccess")
-@Plugin(id = "muchat", name = "MUChat", version = "1.0", description = ".")
+@Plugin(id = "muchat", name = "MUChat", version = "2.0", description = ".")
 public class MUChat {
 
     private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}: ", Options.PREFIX, Options.NAME);
