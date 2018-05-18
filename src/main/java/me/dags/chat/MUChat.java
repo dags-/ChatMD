@@ -24,10 +24,10 @@ import java.util.concurrent.TimeUnit;
  * @author dags <dags@dags.me>
  */
 @SuppressWarnings("WeakerAccess")
-@Plugin(id = "muchat", name = "MUChat", version = "2.0", description = ".")
+@Plugin(id = "muchat", name = "MUChat", version = "1.1", description = ".")
 public class MUChat {
 
-    private static final String HEADER_FORMAT = String.format("{:%s} {header:%s}: ", Options.PREFIX, Options.NAME);
+    private static final String HEADER_FORMAT = String.format("{prefix:%s} {header:%s}: ", Options.PREFIX, Options.NAME);
     private static final String BODY_FORMAT = String.format("{body:%s}", Options.CHAT);
 
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
@@ -50,8 +50,8 @@ public class MUChat {
         ConfigurationNode formatNode = config.getNode("format");
         ConfigurationNode optionsNode = config.getNode("options");
 
-        String header = formatNode.getNode("header").getString(HEADER_FORMAT);
         String body = formatNode.getNode("body").getString(BODY_FORMAT);
+        String header = formatNode.getNode("header").getString(HEADER_FORMAT);
         Options defaultOptions = new Options("default", optionsNode.getNode("default"));
         List<Options> options = new ArrayList<>();
 

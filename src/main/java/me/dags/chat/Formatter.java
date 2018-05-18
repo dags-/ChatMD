@@ -40,12 +40,12 @@ public final class Formatter {
 
         MarkupTemplate.Applier header = options.apply(headerFormat)
                 .with(player.getSubjectData().getOptions(SubjectData.GLOBAL_CONTEXT))
-                .with(event.getFormatter().getHeader())
+                .inherit(event.getFormatter().getHeader())
                 .with(Options.CHAT, chatTemplate);
 
         MarkupTemplate.Applier body = options.apply(bodyFormat)
                 .with(player.getSubjectData().getOptions(SubjectData.GLOBAL_CONTEXT))
-                .with(event.getFormatter().getBody())
+                .inherit(event.getFormatter().getBody())
                 .with(Options.CHAT, chatTemplate);
 
         event.getFormatter().getHeader().set(0, header);
