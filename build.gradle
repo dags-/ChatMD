@@ -21,7 +21,7 @@ repositories {
 
 dependencies {
     compile "org.spongepowered:spongeapi:${spongeAPI}-${spongeChannel}"
-    compile 'com.github.dags-:TextMU:0.1.1'
+    shade 'com.github.dags-:TextMU:0.1.1'
 }
 
 shadowJar {
