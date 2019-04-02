@@ -1,100 +1,88 @@
 package me.dags.chat;
 
 import com.google.inject.Inject;
-import ninja.leaping.configurate.ConfigurationNode;
-import ninja.leaping.configurate.ConfigurationOptions;
-import ninja.leaping.configurate.commented.CommentedConfigurationNode;
-import ninja.leaping.configurate.loader.ConfigurationLoader;
+import me.dags.config.Config;
 import org.spongepowered.api.Sponge;
-import org.spongepowered.api.config.DefaultConfig;
+import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
+import org.spongepowered.api.event.Order;
+import org.spongepowered.api.event.filter.cause.Root;
 import org.spongepowered.api.event.game.GameReloadEvent;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
+import org.spongepowered.api.event.message.MessageChannelEvent;
+import org.spongepowered.api.event.network.ClientConnectionEvent;
 import org.spongepowered.api.plugin.Plugin;
-import org.spongepowered.api.scheduler.Task;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-/**
- * @author dags <dags@dags.me>
- */
-@SuppressWarnings("WeakerAccess")
-@Plugin(id = "muchat", name = "MUChat", version = "1.1", description = ".")
+@Plugin(id = "muchat")
 public class MUChat {
 
-    private static final String HEADER_FORMAT = String.format("{prefix:%s} {header:%s}: ", Options.PREFIX, Options.NAME);
-    private static final String BODY_FORMAT = String.format("{body:%s}", Options.CHAT);
+    private static final Object lock = new Object();
 
-    private final ConfigurationLoader<CommentedConfigurationNode> loader;
-    private volatile Formatter formatter;
+    private final Path path;
+    private Formatter formatter = new Formatter("", "", Format.EMPTY, Collections.emptyList());
 
     @Inject
-    public MUChat(@DefaultConfig(sharedRoot = false) ConfigurationLoader<CommentedConfigurationNode> loader) {
-        this.loader = loader;
+    public MUChat(@ConfigDir(sharedRoot = false) Path dir) {
+        this.path = dir.resolve("config.conf");
+    }
+
+    @Listener
+    public void chat(MessageChannelEvent.Chat event, @Root Player player) {
+        synchronized (lock) {
+            formatter.applyChatFormatting(event, player);
+        }
     }
 
     @Listener
     public void init(GameInitializationEvent event) {
         reload(null);
-        Task.builder().execute(this::syncAll).delay(30, TimeUnit.MINUTES).interval(30, TimeUnit.MINUTES).submit(this);
+    }
+
+    @Listener(order = Order.POST)
+    public void join(ClientConnectionEvent.Join event, @Root Player player) {
+        synchronized (lock) {
+            formatter.applyTabListFormatting();
+        }
     }
 
     @Listener
     public void reload(GameReloadEvent event) {
-        CommentedConfigurationNode config = loadConfig();
-        ConfigurationNode formatNode = config.getNode("format");
-        ConfigurationNode optionsNode = config.getNode("options");
+        Config config = Config.must(path);
 
-        String body = formatNode.getNode("body").getString(BODY_FORMAT);
-        String header = formatNode.getNode("header").getString(HEADER_FORMAT);
-        Options defaultOptions = new Options("default", optionsNode.getNode("default"));
-        List<Options> options = new ArrayList<>();
+        String header = config.node("format", "header").get("{$prefix} {$name}: ");
+        String body = config.node("format", "body").get("{$message}");
 
-        for (Map.Entry<?, ? extends ConfigurationNode> child : optionsNode.getChildrenMap().entrySet()) {
-            String id = child.getKey().toString();
-            ConfigurationNode node = child.getValue();
-            options.add(new Options(id, node));
+        Format defaultFormat = new Format(
+                config.node("formats", "default", "id").get("guest"),
+                config.node("formats", "default", "prefix").get("[Guest](gray)"),
+                config.node("formats", "default", "name").get("[{name}](gray)"),
+                config.node("formats", "default", "tab").get("[{name}](gray)"),
+                config.node("formats", "default", "message").get("{message}"),
+                config.node("formats", "default", "priority").get(-1)
+        );
+
+        List<Format> formats = config.childMap().values().stream()
+                .map(node -> new Format(
+                        node.get("id", ""),
+                        node.get("prefix", ""),
+                        node.get("name", ""),
+                        node.get("tab", ""),
+                        node.get("message", ""),
+                        node.get("priority", 0)
+                ))
+                .collect(Collectors.toList());
+
+        synchronized (lock) {
+            formatter = new Formatter(header, body, defaultFormat, formats);
+            formatter.applyTabListFormatting();
         }
 
-        if (formatter != null) {
-            Sponge.getEventManager().unregisterListeners(formatter);
-        }
-
-        formatter = new Formatter(defaultOptions, options, header, body);
-        Sponge.getEventManager().registerListeners(this, formatter);
-
-        saveConfig(config);
-
-        syncAll();
-    }
-
-    private void syncAll() {
-        if (this.formatter != null) {
-            final Formatter formatter = this.formatter;
-            for (Player player : Sponge.getServer().getOnlinePlayers()) {
-                formatter.syncTabs(player);
-            }
-        }
-    }
-
-    private CommentedConfigurationNode loadConfig() {
-        try {
-            return loader.load(ConfigurationOptions.defaults().setShouldCopyDefaults(true));
-        } catch (IOException e) {
-            return loader.createEmptyNode();
-        }
-    }
-
-    private void saveConfig(CommentedConfigurationNode config) {
-        try {
-            loader.save(config);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        config.save();
     }
 }

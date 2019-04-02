@@ -1,32 +1,46 @@
 plugins {
-    id 'com.github.johnrengelman.shadow' version '2.0.0'
-    id 'java'
+    id "com.github.johnrengelman.shadow" version "4.0.2"
+    id "org.spongepowered.plugin" version "0.8.1"
+    id "java"
 }
 
-group 'me.dags'
-version '1.1-SNAPSHOT'
-def spongeAPI = '7.1.0'
-def spongeChannel = 'SNAPSHOT'
+group "me.dags"
+version "2.0-SNAPSHOT"
+def spongeAPI = "7.2.0"
+def spongeChannel = "SNAPSHOT"
 
 configurations {
     shade
     compile.extendsFrom shade
 }
 
+sponge {
+    plugin.id = rootProject.name.toLowerCase()
+    plugin.meta {
+        name = rootProject.name
+        version = rootProject.version
+        description = "Simple chat and tablist formatter"
+    }
+}
+
 repositories {
     mavenCentral()
-    maven { url 'http://repo.spongepowered.org/maven' }
-    maven { url 'https://jitpack.io' }
+    maven { url "http://repo.spongepowered.org/maven" }
+    maven { url "https://jitpack.io" }
 }
 
 dependencies {
     compile "org.spongepowered:spongeapi:${spongeAPI}-${spongeChannel}"
-    shade 'com.github.dags-:TextMU:0.1.1'
+    shade "com.github.dags-:TextMU:0.3.2"
+    shade ("com.github.dags-:Config:1.0.2") {
+        transitive false
+    }
 }
 
 shadowJar {
     configurations = [project.configurations.shade]
-    relocate 'me.dags.textmu', 'me.dags.chat.libs.textmu'
+    relocate "me.dags.config", "me.dags.chat.config"
+    relocate "me.dags.text", "me.dags.chat.text"
     archiveName = "${baseName}-${version}-SpongeAPI-${spongeAPI}.jar"
 }
 
