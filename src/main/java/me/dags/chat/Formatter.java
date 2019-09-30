@@ -1,7 +1,8 @@
 package me.dags.chat;
 
 import me.dags.text.MUSpec;
-import me.dags.text.MUTemplate;
+import me.dags.text.template.MUApplier;
+import me.dags.text.template.MUTemplate;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.command.CommandSource;
 import org.spongepowered.api.entity.living.player.Player;
@@ -34,16 +35,18 @@ public class Formatter {
     public void applyChatFormatting(MessageChannelEvent event, CommandSource subject) {
         Format format = getFormat(subject);
 
-        MUTemplate.Applier header = this.header.with(event.getFormatter().getHeader())
+        String message = MUSpec.global().write(event.getFormatter().getBody().toText());
+
+        MUApplier header = this.header.with(event.getFormatter().getHeader())
                 .with(subject.getSubjectData().getOptions(SubjectData.GLOBAL_CONTEXT))
                 .with("$prefix", format.getPrefix())
                 .with("$name", format.getName())
                 .with("name", subject.getName());
 
-        MUTemplate.Applier body = this.body.with(event.getFormatter().getBody())
+        MUApplier body = this.body.with(event.getFormatter().getBody())
                 .with(subject.getSubjectData().getOptions(SubjectData.GLOBAL_CONTEXT))
                 .with("$message", format.getMessage())
-                .with("message", event.getFormatter().getBody());
+                .with("message", MUSpec.global().render(subject, message));
 
         setHeader(event.getFormatter(), header);
 
@@ -73,7 +76,7 @@ public class Formatter {
         return defaultFormat;
     }
 
-    private void setBody(MessageEvent.MessageFormatter formatter, MUTemplate.Applier body) {
+    private void setBody(MessageEvent.MessageFormatter formatter, MUApplier body) {
         if (formatter.getHeader().isEmpty()) {
             formatter.setBody(body);
         } else {
@@ -81,7 +84,7 @@ public class Formatter {
         }
     }
 
-    private void setHeader(MessageEvent.MessageFormatter formatter, MUTemplate.Applier header) {
+    private void setHeader(MessageEvent.MessageFormatter formatter, MUApplier header) {
         if (formatter.getHeader().isEmpty()) {
             formatter.setHeader(header);
         } else {

@@ -1,7 +1,7 @@
 package me.dags.chat;
 
 import me.dags.text.MUSpec;
-import me.dags.text.MUTemplate;
+import me.dags.text.template.MUTemplate;
 
 public class Format implements Comparable<Format> {
 

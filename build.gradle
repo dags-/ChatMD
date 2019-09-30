@@ -24,17 +24,20 @@ sponge {
 }
 
 repositories {
+    maven { url "https://orepack.com" }
+}
+
+repositories {
     mavenCentral()
     maven { url "http://repo.spongepowered.org/maven" }
+    maven { url "https://orepack.com" }
     maven { url "https://jitpack.io" }
 }
 
 dependencies {
     compile "org.spongepowered:spongeapi:${spongeAPI}-${spongeChannel}"
-    shade "com.github.dags-:TextMU:0.3.2"
-    shade ("com.github.dags-:Config:1.0.2") {
-        transitive false
-    }
+    shade "com.github.dags-:TextMU:0.4.2"
+    shade "com.github.dags-:Config:1.0.4"
 }
 
 shadowJar {
@@ -44,5 +47,5 @@ shadowJar {
     archiveName = "${baseName}-${version}-SpongeAPI-${spongeAPI}.jar"
 }
 
-build.dependsOn shadowJar
+jar.dependsOn shadowJar
 jar.enabled = false

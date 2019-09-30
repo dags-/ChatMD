@@ -2,7 +2,6 @@ package me.dags.chat;
 
 import com.google.inject.Inject;
 import me.dags.config.Config;
-import org.spongepowered.api.Sponge;
 import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.event.Listener;
@@ -67,7 +66,7 @@ public class MUChat {
                 config.node("formats", "default", "priority").get(-1)
         );
 
-        List<Format> formats = config.childMap().values().stream()
+        List<Format> formats = config.node("formats").childMap().values().stream()
                 .map(node -> new Format(
                         node.get("id", ""),
                         node.get("prefix", ""),
